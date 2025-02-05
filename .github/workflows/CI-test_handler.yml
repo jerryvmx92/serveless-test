@@ -46,17 +46,29 @@ jobs:
         uses: actions/setup-python@v4
         with:
           python-version: "3.11"
+          cache: 'pip'
 
-      - name: Install Dependencies
+      - name: Install System Dependencies
+        run: |
+          apt-get update && apt-get install -y \
+          libgl1-mesa-glx \
+          libglib2.0-0
+
+      - name: Install Python Dependencies
         env:
           PIP_ROOT_USER_ACTION: "ignore"
         run: |
           python -m pip install --upgrade pip
           pip install -r builder/requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Download Model
+        run: |
+          python -c "from diffusers import FluxPipeline; FluxPipeline.from_pretrained('black-forest-labs/FLUX.1-schnell')"
 
       - name: Execute Tests
         run: |
-          python src/handler.py --test_input='{"input": {"key": "value"}}'
+          python src/handler.py --test_input='{"input": {"prompt": "A test image of a cat", "height": 768, "width": 1360, "num_inference_steps": 4, "guidance_scale": 0.0, "max_sequence_length": 256}}'
 
   cleanup:
     if: ${{ always() && !success() }}

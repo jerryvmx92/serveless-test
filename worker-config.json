@@ -60,6 +60,23 @@
                     ]
                 }
             ]
+        },
+        "1.0.0": {
+            "imageName": "runpod/worker-flux",
+            "minimumCudaVersion": "12.1",
+            "categories": [
+                {
+                    "title": "Model Settings",
+                    "settings": [
+                        "prompt",
+                        "height",
+                        "width",
+                        "num_inference_steps",
+                        "guidance_scale",
+                        "max_sequence_length"
+                    ]
+                }
+            ]
         }
     },
     "schema": {
@@ -111,6 +128,69 @@
               { "value": "tensorizer", "label": "tensorizer" },
               { "value": "bitsandbytes", "label": "bitsandbytes" }
             ]
+        },
+        "prompt": {
+            "env_var_name": "PROMPT",
+            "value": "A cat holding a sign that says hello world",
+            "title": "Default Prompt",
+            "description": "The default prompt to use for image generation if none is provided",
+            "required": false,
+            "type": "text"
+        },
+        "height": {
+            "env_var_name": "HEIGHT",
+            "value": "768",
+            "title": "Image Height",
+            "description": "Default height of the generated image",
+            "required": false,
+            "type": "number"
+        },
+        "width": {
+            "env_var_name": "WIDTH",
+            "value": "1360",
+            "title": "Image Width",
+            "description": "Default width of the generated image",
+            "required": false,
+            "type": "number"
+        },
+        "guidance_scale": {
+            "env_var_name": "GUIDANCE_SCALE",
+            "value": "0.0",
+            "title": "Guidance Scale",
+            "description": "Scale for classifier-free guidance",
+            "required": false,
+            "type": "number"
+        },
+        "num_inference_steps": {
+            "env_var_name": "NUM_INFERENCE_STEPS",
+            "value": "4",
+            "title": "Number of Inference Steps",
+            "description": "Number of denoising steps (higher = better quality but slower)",
+            "required": false,
+            "type": "number"
+        },
+        "max_sequence_length": {
+            "env_var_name": "MAX_SEQUENCE_LENGTH",
+            "value": "256",
+            "title": "Max Sequence Length",
+            "description": "Maximum sequence length for the prompt",
+            "required": false,
+            "type": "number"
         }
+    },
+    "version": "1.0.0",
+    "title": "Stable Diffusion Image Generator",
+    "description": "Generate images using Stable Diffusion v1.5",
+    "docker_image": "runpod/stable-diffusion",
+    "cuda_version": "11.8",
+    "runtime": "python3.10",
+    "hardware": {
+        "gpu": "24GB"
+    },
+    "ports": {},
+    "resources": {
+        "cpu": 1,
+        "memory": 8,
+        "gpu": 1
     }
 }

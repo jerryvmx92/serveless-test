@@ -15,11 +15,12 @@ on:
 
 jobs:
   docker-build:
-    runs-on: DO
-    # DO is a custom runner deployed on DigitalOcean, only available for workflows under the runpod-workers organization.
-    # If you would like to use this workflow, you can replace DO with ubuntu-latest or any other runner.
+    runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v2
 
@@ -36,18 +37,20 @@ jobs:
       - name: Build and push
         uses: docker/build-push-action@v4
         with:
+          context: .
           push: true
+          platforms: linux/amd64
+          cache-from: type=registry,ref=${{ vars.DOCKERHUB_REPO }}/${{ vars.DOCKERHUB_IMG }}:buildcache
+          cache-to: type=registry,ref=${{ vars.DOCKERHUB_REPO }}/${{ vars.DOCKERHUB_IMG }}:buildcache,mode=max
           tags: ${{ vars.DOCKERHUB_REPO }}/${{ vars.DOCKERHUB_IMG }}:${{ (github.event_name == 'release' && github.event.release.tag_name) || (github.event_name == 'workflow_dispatch' && github.event.inputs.image_tag) || 'dev' }}
 
-  dev-test:
+  test:
     needs: docker-build
     runs-on: ubuntu-latest
 
     steps:
-      # Checkout
       - uses: actions/checkout@v4
 
-      # Tests
       - name: Run Tests
         if: github.event_name != 'release'
         id: run-tests
@@ -56,8 +59,8 @@ jobs:
           image-tag: ${{ vars.DOCKERHUB_REPO }}/${{ vars.DOCKERHUB_IMG }}:${{ (github.event_name == 'release' && github.event.release.tag_name) || (github.event_name == 'workflow_dispatch' && github.event.inputs.image_tag) || 'dev' }}
           runpod-api-key: ${{ secrets.RUNPOD_API_KEY }}
           request-timeout: 600
+          test-file: .github/tests.json
 
-      # Pass/Fail
       - name: Verify Tests
         env:
           TOTAL_TESTS: ${{ steps.run-tests.outputs.total-tests }}
