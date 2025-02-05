@@ -67,7 +67,7 @@ jobs:
         uses: direlines/runpod-test-runner@v1.7
         with:
           image-tag: ${{ secrets.DOCKERHUB_USERNAME }}/${{ vars.DOCKERHUB_IMG }}:${{ (github.event_name == 'release' && github.event.release.tag_name) || (github.event_name == 'workflow_dispatch' && github.event.inputs.image_tag) || 'dev' }}
-          runpod-api-key: ${{ secrets.RUNPOD_API_KEY }}
+          runpod-api-key: ${{ secrets.RUNPOD_API_TOKEN }}
           request-timeout: 600
 
       - name: Verify Tests
