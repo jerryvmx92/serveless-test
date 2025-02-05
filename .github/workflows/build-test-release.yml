@@ -33,6 +33,16 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Set Docker Meta
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ secrets.DOCKERHUB_USERNAME }}/${{ vars.DOCKERHUB_IMG }}
+          tags: |
+            type=raw,value=buildcache
+            type=raw,value=latest
+            type=raw,value=${{ (github.event_name == 'release' && github.event.release.tag_name) || (github.event_name == 'workflow_dispatch' && github.event.inputs.image_tag) || 'dev' }}
+
       # Build and push step
       - name: Build and push
         uses: docker/build-push-action@v4
@@ -40,9 +50,9 @@ jobs:
           context: .
           push: true
           platforms: linux/amd64
-          cache-from: type=registry,ref=${{ vars.DOCKERHUB_USERNAME }}/${{ vars.DOCKERHUB_IMG }}:buildcache
-          cache-to: type=registry,ref=${{ vars.DOCKERHUB_USERNAME }}/${{ vars.DOCKERHUB_IMG }}:buildcache,mode=max
-          tags: ${{ vars.DOCKERHUB_USERNAME }}/${{ vars.DOCKERHUB_IMG }}:${{ (github.event_name == 'release' && github.event.release.tag_name) || (github.event_name == 'workflow_dispatch' && github.event.inputs.image_tag) || 'dev' }}
+          cache-from: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/${{ vars.DOCKERHUB_IMG }}:buildcache
+          cache-to: type=registry,ref=${{ secrets.DOCKERHUB_USERNAME }}/${{ vars.DOCKERHUB_IMG }}:buildcache,mode=max
+          tags: ${{ steps.meta.outputs.tags }}
 
   test:
     needs: docker-build
@@ -56,10 +66,9 @@ jobs:
         id: run-tests
         uses: direlines/runpod-test-runner@v1.7
         with:
-          image-tag: ${{ vars.DOCKERHUB_USERNAME }}/${{ vars.DOCKERHUB_IMG }}:${{ (github.event_name == 'release' && github.event.release.tag_name) || (github.event_name == 'workflow_dispatch' && github.event.inputs.image_tag) || 'dev' }}
+          image-tag: ${{ secrets.DOCKERHUB_USERNAME }}/${{ vars.DOCKERHUB_IMG }}:${{ (github.event_name == 'release' && github.event.release.tag_name) || (github.event_name == 'workflow_dispatch' && github.event.inputs.image_tag) || 'dev' }}
           runpod-api-key: ${{ secrets.RUNPOD_API_KEY }}
           request-timeout: 600
-          test-file: .github/tests.json
 
       - name: Verify Tests
         env:
