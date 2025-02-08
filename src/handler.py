@@ -1,63 +1,104 @@
-""" Handler for FLUX image generation. """
+"""Handler for FLUX image generation."""
 
-import os
-import torch
 import base64
 from io import BytesIO
-from diffusers import FluxPipeline
-import runpod
 
-# Load the model into memory
-pipe = None
+import runpod
+import torch
+from diffusers import FluxPipeline
+
+from utils.logging_config import logger
+from utils.validation import JobInput
+
+
+class ModelManager:
+    """Manages the FLUX model instance."""
+
+    def __init__(self):
+        """Initialize the model manager."""
+        self.pipe = None
+
+    def init_model(self):
+        """Initialize the FLUX model with appropriate settings."""
+        try:
+            if self.pipe is None:
+                logger.info("Initializing FLUX model")
+                device = "cuda" if torch.cuda.is_available() else "cpu"
+                logger.info("Using device: %s", device)
+
+                self.pipe = FluxPipeline.from_pretrained(
+                    "black-forest-labs/FLUX.1-schnell",
+                    torch_dtype=torch.float32 if device == "cpu" else torch.bfloat16,
+                )
+
+                if device == "cuda":
+                    self.pipe.enable_model_cpu_offload()
+                else:
+                    self.pipe = self.pipe.to(device)
+
+                logger.info("Model initialization complete")
+        except Exception as e:
+            logger.error("Failed to initialize model: %s", str(e), exc_info=True)
+            raise
+        return self.pipe
+
+
+# Create model manager instance
+model_manager = ModelManager()
+
 
 def init_model():
-    global pipe
-    if pipe is None:
-        pipe = FluxPipeline.from_pretrained("black-forest-labs/FLUX.1-schnell", torch_dtype=torch.bfloat16)
-        pipe.enable_model_cpu_offload()
-    return pipe
+    """Initialize the model (for backward compatibility)."""
+    return model_manager.init_model()
 
-# Initialize the model when the worker starts
-init_model()
 
 def handler(job):
-    """ Handler function that will be used to process jobs. """
-    job_input = job['input']
-    
-    # Get parameters from the job input, falling back to environment variables if not provided
-    prompt = job_input.get('prompt', os.getenv('PROMPT', 'A cat holding a sign that says hello world'))
-    height = int(job_input.get('height', os.getenv('HEIGHT', 768)))
-    width = int(job_input.get('width', os.getenv('WIDTH', 1360)))
-    num_inference_steps = int(job_input.get('num_inference_steps', os.getenv('NUM_INFERENCE_STEPS', 4)))
-    guidance_scale = float(job_input.get('guidance_scale', os.getenv('GUIDANCE_SCALE', 0.0)))
-    max_sequence_length = int(job_input.get('max_sequence_length', os.getenv('MAX_SEQUENCE_LENGTH', 256)))
+    """Handler function that will be used to process jobs."""
+    try:
+        # Validate input
+        job_input = JobInput(input=job["input"])
+        params = job_input.input
 
-    # Generate the image
-    image = pipe(
-        prompt=prompt,
-        guidance_scale=guidance_scale,
-        height=height,
-        width=width,
-        num_inference_steps=num_inference_steps,
-        max_sequence_length=max_sequence_length,
-    ).images[0]
-    
-    # Convert PIL image to base64 string
-    buffered = BytesIO()
-    image.save(buffered, format="PNG")
-    image_base64 = base64.b64encode(buffered.getvalue()).decode('utf-8')
-    
-    return {
-        "image_base64": image_base64,
-        "prompt": prompt,
-        "parameters": {
-            "height": height,
-            "width": width,
-            "num_inference_steps": num_inference_steps,
-            "guidance_scale": guidance_scale,
-            "max_sequence_length": max_sequence_length
+        logger.info("Processing job with prompt: %s", params.prompt)
+
+        # Initialize model if not already initialized
+        if model_manager.pipe is None:
+            model_manager.init_model()
+
+        # Generate the image
+        image = model_manager.pipe(
+            prompt=params.prompt,
+            guidance_scale=params.guidance_scale,
+            height=params.height,
+            width=params.width,
+            num_inference_steps=params.num_inference_steps,
+            max_sequence_length=params.max_sequence_length,
+        ).images[0]
+
+        # Convert PIL image to base64 string
+        buffered = BytesIO()
+        image.save(buffered, format="PNG")
+        image_base64 = base64.b64encode(buffered.getvalue()).decode("utf-8")
+
+        logger.info("Image generation complete")
+
+        return {
+            "image_base64": image_base64,
+            "prompt": params.prompt,
+            "parameters": {
+                "height": params.height,
+                "width": params.width,
+                "num_inference_steps": params.num_inference_steps,
+                "guidance_scale": params.guidance_scale,
+                "max_sequence_length": params.max_sequence_length,
+            },
         }
-    }
 
-runpod.serverless.start({"handler": handler})
-#dsda
+    except Exception as e:
+        logger.error("Error processing job: %s", str(e), exc_info=True)
+        raise
+
+
+if __name__ == "__main__":
+    init_model()
+    runpod.serverless.start({"handler": handler})

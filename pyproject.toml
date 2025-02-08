@@ -1,0 +1,33 @@
+[tool.black]
+line-length = 100
+target-version = ['py311']
+include = '\.pyi?$'
+
+[tool.isort]
+profile = "black"
+multi_line_output = 3
+line_length = 100
+
+[tool.pylint]
+max-line-length = 100
+disable = [
+    "C0111",  # missing-docstring
+    "R0903",  # too-few-public-methods
+    "C0103",  # invalid-name
+    "E1101",  # no-member (for Pydantic model fields)
+]
+good-names = ["i", "j", "k", "ex", "Run", "_", "fp", "id"]
+ignore-patterns = ["test_.*?py"]
+
+[tool.pytest]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --cov=src --cov-report=term-missing"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::UserWarning",
+]
+
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"

@@ -26,7 +26,7 @@ jobs:
           url: "https://api.runpod.ai/v2/${{ vars.RUNNER_24GB }}/run"
           method: "POST"
           customHeaders: '{"Content-Type": "application/json"}'
-          bearerToken: ${{ secrets.RUNPOD_API_KEY }}
+          bearerToken: ${{ secrets.RUNPOD_API_TOKEN }}
           data: '{"input":{"github_pat": "${{ secrets.GH_PAT }}", "github_org":"${{ vars.GH_ORG }}"}}'
 
       - name: Extract Job ID
@@ -82,4 +82,4 @@ jobs:
           url: "https://api.runpod.ai/v2/${{ vars.RUNNER_24GB }}/cancel/${{ needs.launch_runner_worker.outputs.id }}"
           method: "POST"
           customHeaders: '{"Content-Type": "application/json"}'
-          bearerToken: ${{ secrets.RUNPOD_API_KEY }}
+          bearerToken: ${{ secrets.RUNPOD_API_TOKEN }}
