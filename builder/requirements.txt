@@ -29,4 +29,4 @@ python-json-logger>=2.0.0
 transformers
 sentencepiece==0.2.0
 protobuf==5.27.3
-
+accelerate
