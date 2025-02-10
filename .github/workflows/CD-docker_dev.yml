@@ -7,7 +7,7 @@ on:
 
 jobs:
   docker:
-    runs-on: depot-ubuntu-22.04-4
+    runs-on: ubuntu-latest
     # Permissions to use OIDC token authentication
     permissions:
       contents: read
