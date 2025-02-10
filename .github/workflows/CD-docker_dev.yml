@@ -28,6 +28,7 @@ jobs:
         uses: depot/build-push-action@v1
         with:
           project: nmwm8p4x7f
+          token: ${{ secrets.DEPOT_USER_TOKEN }}
           push: true
           tags: ${{ vars.DOCKERHUB_REPO }}/${{ vars.DOCKERHUB_IMG }}:latest
           context: .
